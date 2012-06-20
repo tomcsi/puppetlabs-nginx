@@ -14,11 +14,12 @@
 #
 # This class file is not called directly
 class nginx::service {
-  exec { 'rebuild-nginx-vhosts':
-    command     => "for vhost in `ls -1 ${nginx::params::nx_temp_dir}/nginx.d/ | sed 's/\(.*\)-\([0-9][0-9][0-9]\).*/\1/' | uniq`; do /bin/cat ${nginx::params::nx_temp_dir}/nginx.d/\$vhost* > ${nginx::params::nx_conf_dir}/sites-available/\$vhost; done",
-    refreshonly => true,
-    provider => shell,
-    subscribe   => File["${nginx::params::nx_temp_dir}/nginx.d"],
+  exec { 
+    'rebuild-nginx-vhosts':
+      command     => "for vhost in `ls -1 ${nginx::params::nx_temp_dir}/nginx.d/ | sed 's/\(.*\)-\([0-9][0-9][0-9]\).*/\1/' | uniq`; do /bin/cat ${nginx::params::nx_temp_dir}/nginx.d/\$vhost* > ${nginx::params::nx_conf_dir}/sites-available/\$vhost; ln -s ../sites-available/\$vhost ${nginx::params::nx_conf_dir}/sites-enabled/\$vhost; done",
+      refreshonly => true,
+      provider => shell,
+      subscribe   => File["${nginx::params::nx_temp_dir}/nginx.d"];
   }
   service { "nginx":
     ensure     => running,
