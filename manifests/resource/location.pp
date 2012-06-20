@@ -67,9 +67,11 @@ define nginx::resource::location(
   }
 
   ## Create stubs for vHost File Fragment Pattern
-  file {"${nginx::config::nx_temp_dir}/nginx.d/${vhost}-500-${name}":
-    ensure  => $ensure_real,
-    content => $content_real,
+  if $option == undef {
+    file {"${nginx::config::nx_temp_dir}/nginx.d/${vhost}-500-${name}":
+      ensure  => $ensure_real,
+      content => $content_real,
+    }
   }
 
   ## Only create SSL Specific locations if $ssl is true.
@@ -81,7 +83,7 @@ define nginx::resource::location(
   }
   
   if ($option == 'php') {
-    file {"${nginx::config::nx_temp_dir}/nginx.d/${vhost}-800-${name}-php":
+    file {"${nginx::config::nx_temp_dir}/nginx.d/${vhost}-500-${name}-php":
       ensure  => $ensure_real,
       content => template('nginx/vhost/vhost_location_php.erb')
     }

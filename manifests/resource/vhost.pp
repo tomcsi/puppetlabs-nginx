@@ -42,7 +42,8 @@ define nginx::resource::vhost(
   $ssl_key          = undef,
   $proxy            = undef,
   $index_files      = ['index.html', 'index.htm', 'index.php'],
-  $www_root         = undef
+  $www_root         = undef,
+  $redirect_from    = undef
 ) {
 
   File {
@@ -100,7 +101,7 @@ define nginx::resource::vhost(
   if ($ssl == 'true') {
     file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-700-ssl":
       ensure => $ensure ? {
-	'absent' => absent,
+        'absent' => absent,
         default  => 'file',
       },
       content => template('nginx/vhost/vhost_ssl_header.erb'),
@@ -109,10 +110,17 @@ define nginx::resource::vhost(
     file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-999-ssl":
       ensure => $ensure ? {
         'absent' => absent,
-	default  => 'file',
+        default  => 'file',
       },
       content => template('nginx/vhost/vhost_footer.erb'),
       notify => Class['nginx::service'],
+    }
+  }
+  
+  if $redirect_from {
+    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-900":
+      content => template('nginx/vhost/vhost_redirect.erb'),
+      notify => Class['nginx::service']
     }
   }
 }
