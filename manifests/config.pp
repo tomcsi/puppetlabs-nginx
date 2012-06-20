@@ -58,7 +58,7 @@ class nginx::config inherits nginx::params {
 
   file { "${nginx::config::nx_temp_dir}/nginx.d":
     ensure  => directory,
-    purge   => false,
+    purge   => true,
     recurse => true,
   }
 }
