@@ -15,8 +15,9 @@
 # This class file is not called directly
 class nginx::service {
   exec { 'rebuild-nginx-vhosts':
-    command     => "/bin/cat ${nginx::params::nx_temp_dir}/nginx.d/* > ${nginx::params::nx_conf_dir}/conf.d/vhost_autogen.conf",
-    refreshonly => true,
+    command     => "for vhost in `ls -1 ${nginx::params::nx_temp_dir}/nginx.d/ | sed 's/\(.*\)-\([0-9][0-9][0-9]\).*/\1/' | uniq`; do /bin/cat ${nginx::params::nx_temp_dir}/nginx.d/\$vhost* > ${nginx::params::nx_conf_dir}/sites-available/\$vhost; done",
+#    refreshonly => true,
+    provider => shell,
     subscribe   => File["${nginx::params::nx_temp_dir}/nginx.d"],
   }
   service { "nginx":
