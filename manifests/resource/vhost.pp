@@ -43,7 +43,8 @@ define nginx::resource::vhost(
   $proxy            = undef,
   $index_files      = ['index.html', 'index.htm', 'index.php'],
   $www_root         = undef,
-  $redirect_from    = undef
+  $redirect_from    = undef,
+  $custom           = false
 ) {
 
   File {
@@ -52,74 +53,85 @@ define nginx::resource::vhost(
     mode  => '0644',
   }
 
-  # Add IPv6 Logic Check - Nginx service will not start if ipv6 is enabled
-  # and support does not exist for it in the kernel.
-  if ($ipv6_enable == 'true') and ($ipaddress6)  {
-    warning('nginx: IPv6 support is not enabled or configured properly')
-  }
-
-  # Check to see if SSL Certificates are properly defined.
-  if ($ssl == 'true') {
-    if ($ssl_cert == undef) or ($ssl_key == undef) {
-      fail('nginx: SSL certificate/key (ssl_cert/ssl_cert) and/or SSL Private must be defined and exist on the target system(s)')
+  if $custom == false {
+    # Add IPv6 Logic Check - Nginx service will not start if ipv6 is enabled
+    # and support does not exist for it in the kernel.
+    if ($ipv6_enable == 'true') and ($ipaddress6)  {
+      warning('nginx: IPv6 support is not enabled or configured properly')
     }
-  }
 
-  # Use the File Fragment Pattern to construct the configuration files.
-  # Create the base configuration file reference.
-  file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-001":
-    ensure  => $ensure ? {
-      'absent' => absent,
-      default  => 'file',
-    },
-    content => template('nginx/vhost/vhost_header.erb'),
-    notify => Class['nginx::service'],
-  }
+    # Check to see if SSL Certificates are properly defined.
+    if ($ssl == 'true') {
+      if ($ssl_cert == undef) or ($ssl_key == undef) {
+        fail('nginx: SSL certificate/key (ssl_cert/ssl_cert) and/or SSL Private must be defined and exist on the target system(s)')
+      }
+    }
 
-  # Create the default location reference for the vHost
-  nginx::resource::location {"${name}-default":
-    ensure   => $ensure,
-    vhost    => $name,
-    ssl      => $ssl,
-    location => '/',
-    proxy    => $proxy,
-    www_root => $www_root,
-    notify   => Class['nginx::service'],
-  }
-
-  # Create a proper file close stub.
-  file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-699":
-    ensure  => $ensure ? {
-      'absent' => absent,
-      default  => 'file',
-    },
-    content => template('nginx/vhost/vhost_footer.erb'),
-    notify  => Class['nginx::service'],
-  }
-
-  # Create SSL File Stubs if SSL is enabled
-  if ($ssl == 'true') {
-    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-700-ssl":
-      ensure => $ensure ? {
+    # Use the File Fragment Pattern to construct the configuration files.
+    # Create the base configuration file reference.
+    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-001":
+      ensure  => $ensure ? {
         'absent' => absent,
         default  => 'file',
       },
-      content => template('nginx/vhost/vhost_ssl_header.erb'),
+      content => template('nginx/vhost/vhost_header.erb'),
       notify => Class['nginx::service'],
     }
-    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-999-ssl":
-      ensure => $ensure ? {
+
+    # Create the default location reference for the vHost
+#    nginx::resource::location {"${name}-default":
+#      ensure   => $ensure,
+#      vhost    => $name,
+#      ssl      => $ssl,
+#      location => '/',
+#      proxy    => $proxy,
+#      www_root => $www_root,
+#      notify   => Class['nginx::service'],
+#    }
+    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-500":
+      content => "  root $www_root;\n  index index.php index.html;\n";
+#  location / {\n    try_files \$uri;\n  }\n";
+    }
+
+    # Create a proper file close stub.
+    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-699":
+      ensure  => $ensure ? {
         'absent' => absent,
         default  => 'file',
       },
       content => template('nginx/vhost/vhost_footer.erb'),
-      notify => Class['nginx::service'],
+      notify  => Class['nginx::service'],
     }
-  }
-  
-  if $redirect_from {
-    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-900":
-      content => template('nginx/vhost/vhost_redirect.erb'),
+
+    # Create SSL File Stubs if SSL is enabled
+    if ($ssl == 'true') {
+      file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-700-ssl":
+        ensure => $ensure ? {
+          'absent' => absent,
+          default  => 'file',
+        },
+        content => template('nginx/vhost/vhost_ssl_header.erb'),
+        notify => Class['nginx::service'],
+      }
+      file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-999-ssl":
+        ensure => $ensure ? {
+          'absent' => absent,
+          default  => 'file',
+        },
+        content => template('nginx/vhost/vhost_footer.erb'),
+        notify => Class['nginx::service'],
+      }
+    }
+    
+    if $redirect_from {
+      file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-900":
+        content => template('nginx/vhost/vhost_redirect.erb'),
+        notify => Class['nginx::service']
+      }
+    }
+  } else {
+    file { "${nginx::config::nx_temp_dir}/nginx.d/${name}-100":
+      source => "puppet:///files/${fqdn}/nginx/vhosts/${name}.conf",
       notify => Class['nginx::service']
     }
   }

@@ -1,0 +1,8 @@
+  location <%= location %> {
+    expires off;
+    include /etc/nginx/fastcgi_params;
+    fastcgi_pass <%= fastcgi_socket %>;
+    fastcgi_index index.php;
+    fastcgi_param  SCRIPT_FILENAME  <%= www_root %>/$fastcgi_script_name;
+  }
+

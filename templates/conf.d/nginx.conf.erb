@@ -20,6 +20,8 @@ http {
   <% if scope.lookupvar('nginx::params::nx_tcp_nopush' == 'on') %>
   tcp_nopush  on;
   <% end %>
+  
+  server_tokens off;
 
   keepalive_timeout  <%= scope.lookupvar('nginx::params::nx_keepalive_timeout')%>;
   tcp_nodelay        <%= scope.lookupvar('nginx::params::nx_tcp_nodelay')%>;
@@ -30,4 +32,5 @@ http {
   <% end %>
 
   include /etc/nginx/conf.d/*.conf;
+  include /etc/nginx/sites-enabled/*;
 }
